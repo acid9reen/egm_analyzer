@@ -1,0 +1,37 @@
+[build-system]
+# Minimum requirements for the build system to execute.
+requires = ["setuptools", "wheel"]  # PEP 508 specifications.
+
+[project]
+name = "egm_analyzer"
+authors = [
+    {name = "Anton Rybkin"},
+    {name = "Ruslan Smirnov"},
+]
+description = "Tool for electrogram analysis (heartbeat detection for now)"
+readme = "README.md"
+version = "0.1.0"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy",
+    "onnxruntime",
+    "tqdm",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest",
+]
+dev = [
+    "egm_analyzer[test]",
+    "flake8",
+    "mypy",
+    "pre-commit",
+    "types-tqdm",
+]
+
+[tool.setuptools.packages.find]
+exclude = ["test"]
+
+[tool.setuptools.package-data]
+egm_analyzer = ["py.typed"]

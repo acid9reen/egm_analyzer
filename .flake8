@@ -1,0 +1,16 @@
+[flake8]
+show-source = true
+exclude =
+    .git,
+    __pycache__,
+    .venv,
+    venv,
+    .ipynb,
+    .md,
+    .txt,
+    .tox,
+    *.egg,
+    *.egg-info,
+
+max-complexity = 10
+max_line_length = 100

@@ -1,0 +1,9 @@
+# Changes here will be overwritten by Copier
+_commit: 8048e81
+_src_path: gh:acid9reen/python_template
+author: Ruslan Smirnov
+package_name: egm_analyzer
+project_name: Electrogram analyzer tool
+project_short_description: Tool for electrogram analysis (heartbeat detection for
+    now)
+python_version: '3.10'
