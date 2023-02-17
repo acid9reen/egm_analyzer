@@ -35,3 +35,6 @@ exclude = ["test"]
 
 [tool.setuptools.package-data]
 egm_analyzer = ["py.typed"]
+
+[project.scripts]
+analyze_egm = "egm_analyzer.cli:main"
