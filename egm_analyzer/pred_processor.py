@@ -12,10 +12,10 @@ def max_compressor(pred: np.ndarray) -> int:
 
 
 def compress(
-    pred: np.ndarray,
-    treshold: float,
-    skew: int,
-    compressor: Callable[[np.ndarray], int] = max_compressor,
+        pred: np.ndarray,
+        treshold: float,
+        skew: int,
+        compressor: Callable[[np.ndarray], int] = max_compressor,
 ) -> np.ndarray:
 
     peaks_indexes = []
