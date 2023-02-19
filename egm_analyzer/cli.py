@@ -1,5 +1,8 @@
 import argparse
+import csv
 import multiprocessing as mp
+import os
+from itertools import zip_longest
 from pathlib import Path
 
 import numpy as np
@@ -15,6 +18,8 @@ class EGMAnalyzerNamespace(argparse.Namespace):
     output_file: Path
     signal_path: Path
     threshold: float
+    remove_temp_file: bool
+    gpu_mem_limit: int
 
 
 def parse_args() -> EGMAnalyzerNamespace:
@@ -57,6 +62,17 @@ def parse_args() -> EGMAnalyzerNamespace:
         help='Path to output file',
         default='./out',
     )
+    parser.add_argument(
+        '--remove_temp_file',
+        action='store_true',
+        help='Remove intermediate .csv file',
+    )
+    parser.add_argument(
+        '--gpu_mem_limit',
+        type=int,
+        help='GPU memory limit in GB',
+        default=8,
+    )
 
     return parser.parse_args(namespace=EGMAnalyzerNamespace())
 
@@ -70,7 +86,7 @@ def main() -> int:
             {
                 'device_id': 0,
                 'arena_extend_strategy': 'kNextPowerOfTwo',
-                'gpu_mem_limit': 8 * 1024 * 1024 * 1024,
+                'gpu_mem_limit': args.gpu_mem_limit * 1024 * 1024 * 1024,
                 'cudnn_conv_algo_search': 'EXHAUSTIVE',
                 'do_copy_in_default_stream': True,
             },
@@ -78,15 +94,29 @@ def main() -> int:
         'CPUExecutionProvider',
     ]
 
+    temp_filename = '.temp_' + args.output_filepath.name
+    temp_filepath = args.output_filepath.parent / temp_filename
+
     predictor = OnnxModelWrapper(args.model_path, providers=providers)
     signal_processor = SignalProcessor(
         predictor,
         args.batch_size,
-        args.output_filepath,
+        temp_filepath,
         threshold=args.threshold,
     )
 
     signal = np.load(args.signal_path, mmap_mode='r')
     signal_processor.process(signal)
+
+    with open(temp_filepath, 'r', newline='') as temp, \
+         open(args.output_filepath, 'w', newline='') as out:
+
+        csv_reader = csv.reader(temp, dialect='excel')
+        csv_writer = csv.writer(out, dialect='excel')
+
+        csv_writer.writerows(zip_longest(*csv_reader, fillvalue=''))
+
+    if args.remove_temp_file:
+        os.remove(temp_filepath)
 
     return 0
