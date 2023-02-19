@@ -8,7 +8,7 @@ def mean_compressor(pred: np.ndarray) -> int:
 
 
 def max_compressor(pred: np.ndarray) -> int:
-    return np.argmax(pred)
+    return int(np.argmax(pred))
 
 
 def compress(
@@ -16,7 +16,7 @@ def compress(
         treshold: float,
         skew: int,
         compressor: Callable[[np.ndarray], int] = max_compressor,
-) -> np.ndarray:
+) -> list[int]:
 
     peaks_indexes = []
     flag = False
