@@ -16,12 +16,13 @@ def batcher(
         signal: np.ndarray,
         batch_size: int,
         step: int,
+        intersection_length: int = 500,
 ) -> Generator[np.ndarray, None, None]:
     batch = []
-    num_batches = len(signal) // step
+    num_batches, remaining = divmod(len(signal), step)
 
     for batch_index in range(num_batches):
-        start_index = batch_index * step
+        start_index = batch_index * (step - intersection_length)
         stop_index = start_index + step
 
         batch.append([signal[start_index:stop_index]])
@@ -31,6 +32,14 @@ def batcher(
                 yield np.array(batch)
             finally:
                 batch = []
+
+    # Get the remaining part of the signal
+    if remaining != 0:
+        batch.append([signal[-step:]])
+
+    # Exit on empty batch
+    if not batch:
+        return
 
     yield np.array(batch)
 
@@ -57,15 +66,14 @@ class SignalProcessor(object):
             csv_writer.writerow(result)
 
     def process(self, signal: np.ndarray) -> None:
-        for channel_index, channel in tqdm(
-                enumerate(signal), total=len(signal), colour='green',
-        ):
+        for channel in tqdm(signal, total=len(signal), colour='green'):
             channel_predictions = []
 
-            for batch in batcher(channel, self._batch_size, self._step):
+            for batch in batcher(channel, self._batch_size, self._step, 500):
                 prediction_batch = self._model.predict(batch)
                 channel_predictions.append(prediction_batch.flatten())
 
             channel_prediction = np.hstack(channel_predictions)
-            result = compress(channel_prediction, self._threshold, 0)
+            peaks_indexes = np.nonzero(channel_prediction > self._threshold)
+            result = compress(peaks_indexes, channel)
             self._write_result(result)
