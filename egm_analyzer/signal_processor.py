@@ -74,6 +74,6 @@ class SignalProcessor(object):
                 channel_predictions.append(prediction_batch.flatten())
 
             channel_prediction = np.hstack(channel_predictions)
-            peaks_indexes = np.nonzero(channel_prediction > self._threshold)
-            result = compress(peaks_indexes, channel)
+            peaks_indexes, *__ = np.nonzero(channel_prediction > self._threshold)
+            result = compress(peaks_indexes, channel, 100)
             self._write_result(result)
