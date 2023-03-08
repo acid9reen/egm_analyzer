@@ -19,7 +19,7 @@ def batcher(
         intersection_length: int = 500,
 ) -> Generator[np.ndarray, None, None]:
     batch = []
-    num_batches, remaining = divmod(len(signal), step)
+    num_batches, remaining = divmod(len(signal), step - intersection_length)
 
     for batch_index in range(num_batches):
         start_index = batch_index * (step - intersection_length)
