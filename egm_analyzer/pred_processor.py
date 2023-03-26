@@ -1,64 +1,118 @@
+from typing import Protocol
+
 import numpy as np
 
 
-def first_derivative(func: np.ndarray) -> float:
+class Derivative(Protocol):
+    @property
+    def kernel_size(self) -> int:
+        ...
 
-    maxi_left = np.max(func[0], func[1])
-    mini_right = np.min(func[3], func[4])
-
-    return mini_right - maxi_left
+    def calculate_approximation(self, signal_cutout: np.ndarray) -> float:
+        ...
 
 
-def compress(
-        pred: np.ndarray,
-        signal: np.ndarray,
-        window_size: int,
-) -> list[int]:
+class ThreePointDerivative:
+    @property
+    def kernel_size(self) -> int:
+        return 3
 
-    pred = np.sort(pred)
+    def calculate_approximation(self, signal_cutout: np.ndarray) -> float:
+        return signal_cutout[2] - signal_cutout[0]
 
-    peaks_indexes = []
-    group_start = pred[0]
-    founded_end = False
 
-    for index, elem in enumerate(pred[2:-2]):
-        founded_end = False
+class FivePointDerivative:
+    @property
+    def kernel_size(self) -> int:
+        return 5
 
-        if (pred[index + 1] - elem > window_size):
-            group_end = elem
+    def calculate_approximation(self, signal_cutout: np.ndarray) -> float:
+        maxi_left = max(signal_cutout[0], signal_cutout[1])
+        mini_right = min(signal_cutout[3], signal_cutout[4])
 
-            if group_end - group_start > 5:
+        return mini_right - maxi_left
 
-                min_derivative = 1_000_000_000
-                min_derivative_idx = 0
 
-                for idx in range(group_start - 2, group_end + 2):
-                    derivative = first_derivative(signal[idx:idx + 5])
-                    if derivative < min_derivative:
-                        min_derivative = derivative
-                        min_derivative_idx = idx + 2
+class Compressor:
+    def __init__(
+            self,
+            derivative_calculator: Derivative = ThreePointDerivative(),
+            window_size: int = 100,
+            frequency: int = 5000,
+    ) -> None:
+        self._derivative = derivative_calculator
+        self._window_size = window_size
+        self._padding_size = self._derivative.kernel_size // 2
+        self._indices_to_microseconds_constant = int(1 / frequency * 1e6)
 
-                group_start = pred[index + 1]
-                founded_end = True
-                peaks_indexes.append(min_derivative_idx)
-            else:
-                group_start = pred[index + 1]
+    def find_relative_minimum_derivative_index(
+            self,
+            signal_cutout: np.ndarray,
+    ) -> int | None:
+        if len(signal_cutout) < self._derivative.kernel_size:
+            return None
 
-    if not founded_end:
+        minimum_derivative = self._derivative.calculate_approximation(
+            signal_cutout[:self._derivative.kernel_size],
+        )
+        minimum_derivative_index = self._padding_size
+        start_index = minimum_derivative_index + 1
 
-        group_end = min(pred[-1], len(signal) - 2)
+        for point_index in range(start_index, len(signal_cutout) - self._padding_size):
+            derivative = self._derivative.calculate_approximation(
+                signal_cutout[
+                    point_index - self._padding_size:point_index + self._padding_size + 1
+                ],
+            )
 
-        if group_end - group_start > 5:
+            if derivative <= minimum_derivative:
+                minimum_derivative = derivative
+                minimum_derivative_index = point_index
 
-            min_derivative = 1_000_000_000
-            min_derivative_idx = 0
+        return minimum_derivative_index
 
-            for idx in range(group_start - 2, group_end + 2):
-                derivative = first_derivative(signal[idx:idx + 5])
-                if derivative < min_derivative:
-                    min_derivative = derivative
-                    min_derivative_idx = idx + 2
+    def compress(self, preds: np.ndarray, signal: np.ndarray) -> list[int]:
+        if len(preds) < 1:
+            return []
 
-                peaks_indexes.append(min_derivative_idx)
+        preds = np.sort(preds)
 
-    return peaks_indexes
+        peaks_indexes = []
+        group_start = preds[0]
+        group_end = group_start
+
+        for pred in preds:
+            if pred - group_start < self._window_size:
+                group_end = pred
+                continue
+
+            relative_minimum_derivative_index = (
+                self.find_relative_minimum_derivative_index(
+                    signal[max(group_start - self._padding_size, 0):group_end + self._padding_size],
+                )
+            )
+
+            if relative_minimum_derivative_index is not None:
+                peaks_indexes.append(
+                    (
+                        relative_minimum_derivative_index + group_start - self._padding_size
+                    ) * self._indices_to_microseconds_constant,
+                )
+
+            group_start = pred
+            group_end = pred
+
+        relative_minimum_derivative_index = (
+            self.find_relative_minimum_derivative_index(
+                signal[max(group_start - self._padding_size, 0):group_end + self._padding_size],
+            )
+        )
+
+        if relative_minimum_derivative_index is not None:
+            peaks_indexes.append(
+                (
+                    relative_minimum_derivative_index + group_start - self._padding_size
+                ) * self._indices_to_microseconds_constant,
+            )
+
+        return peaks_indexes

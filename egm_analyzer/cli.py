@@ -8,6 +8,7 @@ from pathlib import Path
 import numpy as np
 
 from egm_analyzer.models.onnx_wrapper import OnnxModelWrapper
+from egm_analyzer.pred_processor import Compressor
 from egm_analyzer.signal_processor import SignalProcessor
 
 
@@ -98,10 +99,12 @@ def main() -> int:
     temp_filepath = args.output_filepath.parent / temp_filename
 
     predictor = OnnxModelWrapper(args.model_path, providers=providers)
+    compressor = Compressor()
     signal_processor = SignalProcessor(
         predictor,
         args.batch_size,
         temp_filepath,
+        compressor,
         threshold=args.threshold,
     )
 

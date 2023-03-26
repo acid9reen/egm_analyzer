@@ -6,7 +6,7 @@ import numpy as np
 from tqdm import tqdm
 
 from egm_analyzer.models.model import PredictionModel
-from egm_analyzer.pred_processor import compress
+from egm_analyzer.pred_processor import Compressor
 
 
 seconds = int
@@ -50,15 +50,19 @@ class SignalProcessor(object):
             model: PredictionModel,
             batch_size: int,
             output_file: Path,
+            compressor: Compressor,
             signal_frequency: int = 5_000,
             signal_length: seconds = 2,
             threshold: float = 0.5,
+            intersection: int = 500,
     ) -> None:
         self._model = model
         self._batch_size = batch_size
         self._step = signal_frequency * signal_length
         self._threshold = threshold
         self._output_file = output_file
+        self._intersection = intersection
+        self._compressor = compressor
 
     def _write_result(self, result: list[int]) -> None:
         with open(self._output_file, 'a', newline='') as out:
@@ -67,13 +71,26 @@ class SignalProcessor(object):
 
     def process(self, signal: np.ndarray) -> None:
         for channel in tqdm(signal, total=len(signal), colour='green'):
-            channel_predictions = []
+            channel_predictions_batches: list[np.ndarray] = []
 
-            for batch in batcher(channel, self._batch_size, self._step, 500):
+            for batch in batcher(channel, self._batch_size, self._step, self._intersection):
                 prediction_batch = self._model.predict(batch)
-                channel_predictions.append(prediction_batch.flatten())
+                channel_predictions_batches.append(prediction_batch.squeeze())
 
-            channel_prediction = np.hstack(channel_predictions)
-            peaks_indexes, *__ = np.nonzero(channel_prediction > self._threshold)
-            result = compress(peaks_indexes, channel, 100)
+            channel_predictions = np.vstack(channel_predictions_batches)
+
+            accumulated_step = 0
+            prediction_indexes = []
+            for batch in channel_predictions[:-1]:
+                indexes, *__ = np.nonzero(batch > self._threshold)
+                indexes += accumulated_step
+                prediction_indexes.append(indexes)
+                accumulated_step += (self._step - self._intersection)
+
+            last_indexes, *__ = np.nonzero(channel_predictions[-1] > self._threshold)
+            last_indexes += len(channel) - 1 - self._step
+            prediction_indexes.append(last_indexes)
+
+            channel_prediction = np.hstack(prediction_indexes)
+            result = self._compressor.compress(channel_prediction, channel)
             self._write_result(result)
