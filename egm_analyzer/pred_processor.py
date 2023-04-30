@@ -1,5 +1,3 @@
-from typing import Protocol
-
 import numpy as np
 from scipy.interpolate import CubicSpline
 
@@ -22,20 +20,19 @@ class Compressor:
     ) -> int | None:
         if len(signal_cutout) < 5:
             return None
-        
 
         indexes = range(len(signal_cutout))
         cs = CubicSpline(indexes, signal_cutout)
-        
+
         high_res_indexes = np.linspace(
             0,
-            len(signal_cutout),
-            int(self._signal_to_target_frequency * len(signal_cutout)),
+            len(signal_cutout) - 1,
+            int(self._signal_to_target_frequency * (len(signal_cutout) - 1)),
             endpoint=False,
         )
-        
-        abscis_min_der_index = np.argmin(cs(high_res_indexes, 1))
-        
+
+        abscis_min_der_index = int(np.argmin(cs(high_res_indexes, 1)))
+
         return abscis_min_der_index
 
     def compress(self, preds: np.ndarray, signal: np.ndarray) -> list[int]:
@@ -55,7 +52,7 @@ class Compressor:
 
             relative_minimum_derivative_index = (
                 self.find_relative_minimum_derivative_index(
-                    signal[group_start : group_end],
+                    signal[group_start : min(group_end + 1, len(signal))],
                 )
             )
 
@@ -72,7 +69,7 @@ class Compressor:
 
         relative_minimum_derivative_index = (
             self.find_relative_minimum_derivative_index(
-                signal[group_start : group_end],
+                signal[group_start : min(group_end + 1, len(signal))],
             )
         )
 
