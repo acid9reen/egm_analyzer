@@ -49,7 +49,6 @@ class SignalProcessor(object):
             self,
             model: PredictionModel,
             batch_size: int,
-            output_file: Path,
             compressor: Compressor,
             signal_frequency: int = 5_000,
             signal_length: seconds = 2,
@@ -60,16 +59,12 @@ class SignalProcessor(object):
         self._batch_size = batch_size
         self._step = signal_frequency * signal_length
         self._threshold = threshold
-        self._output_file = output_file
         self._intersection = intersection
         self._compressor = compressor
 
-    def _write_result(self, result: list[int]) -> None:
-        with open(self._output_file, 'a', newline='') as out:
-            csv_writer = csv.writer(out, dialect='excel')
-            csv_writer.writerow(result)
+    def process(self, signal: np.ndarray) -> list[list[int]]:
+        result: list[list[int]] = []
 
-    def process(self, signal: np.ndarray) -> None:
         for channel in tqdm(signal, total=len(signal), colour='green'):
             channel_predictions_batches: list[np.ndarray] = []
 
@@ -92,5 +87,7 @@ class SignalProcessor(object):
             prediction_indexes.append(last_indexes)
 
             channel_prediction = np.hstack(prediction_indexes)
-            result = self._compressor.compress(channel_prediction, channel)
-            self._write_result(result)
+            channel_result = self._compressor.compress(channel_prediction, channel)
+            result.append(channel_result)
+
+        return result

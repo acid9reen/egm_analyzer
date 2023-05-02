@@ -103,13 +103,17 @@ def main() -> int:
     signal_processor = SignalProcessor(
         predictor,
         args.batch_size,
-        temp_filepath,
         compressor,
         threshold=args.threshold,
     )
 
     signal = np.load(args.signal_path, mmap_mode='r')
-    signal_processor.process(signal)
+    result = signal_processor.process(signal)
+
+    with open(temp_filepath, 'w', newline='') as out:
+        csv_writer = csv.writer(out, dialect='excel')
+        for channel in result:
+            csv_writer.writerow(channel)
 
     with open(temp_filepath, 'r', newline='') as temp, \
          open(args.output_filepath, 'w', newline='') as out:
