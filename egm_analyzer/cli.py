@@ -10,6 +10,7 @@ import numpy as np
 from egm_analyzer.models.onnx_wrapper import OnnxModelWrapper
 from egm_analyzer.pred_processor import Compressor
 from egm_analyzer.signal_processor import SignalProcessor
+from egm_analyzer.predictions_postprocess import postprocess_predictions
 
 
 class EGMAnalyzerNamespace(argparse.Namespace):
@@ -99,7 +100,7 @@ def main() -> int:
     temp_filepath = args.output_filepath.parent / temp_filename
 
     predictor = OnnxModelWrapper(args.model_path, providers=providers)
-    compressor = Compressor()
+    compressor = Compressor(target_frequency=20_000)
     signal_processor = SignalProcessor(
         predictor,
         args.batch_size,
@@ -109,6 +110,7 @@ def main() -> int:
 
     signal = np.load(args.signal_path, mmap_mode='r')
     result = signal_processor.process(signal)
+    result = postprocess_predictions(result, 100_000)
 
     with open(temp_filepath, 'w', newline='') as out:
         csv_writer = csv.writer(out, dialect='excel')

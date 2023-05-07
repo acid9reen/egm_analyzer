@@ -35,7 +35,7 @@ class Compressor:
 
         return abscis_min_der_index
 
-    def compress(self, preds: np.ndarray, signal: np.ndarray) -> list[int]:
+    def compress(self, preds: np.ndarray, signal: np.ndarray) -> list[float]:
         if len(preds) < 1:
             return []
 

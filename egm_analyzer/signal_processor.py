@@ -62,8 +62,8 @@ class SignalProcessor(object):
         self._intersection = intersection
         self._compressor = compressor
 
-    def process(self, signal: np.ndarray) -> list[list[int]]:
-        result: list[list[int]] = []
+    def process(self, signal: np.ndarray) -> list[list[float]]:
+        result: list[list[float]] = []
 
         for channel in tqdm(signal, total=len(signal), colour='green'):
             channel_predictions_batches: list[np.ndarray] = []
