@@ -128,14 +128,11 @@ def main() -> int:
     ground_truth = read_ground_truth(args.ground_truth_filepath)
     predictions = read_predictions(args.predictions_filepath)
 
-    total_tp, total_fp, total_fn = 0, 0, 0
-
     metrics_args = zip(
         ground_truth,
         predictions,
         cycle([args.window_size]),
     )
-
     tp_fp_args, fn_args = tee(metrics_args, 2)
 
     total_tp, total_fp = reduce(elementwise_sum, starmap(calculate_tp_fp, tp_fp_args))
