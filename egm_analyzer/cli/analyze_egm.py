@@ -9,8 +9,8 @@ import numpy as np
 
 from egm_analyzer.models.onnx_wrapper import OnnxModelWrapper
 from egm_analyzer.pred_processor import Compressor
-from egm_analyzer.signal_processor import SignalProcessor
 from egm_analyzer.predictions_postprocess import postprocess_predictions
+from egm_analyzer.signal_processor import SignalProcessor
 
 
 class EGMAnalyzerNamespace(argparse.Namespace):
