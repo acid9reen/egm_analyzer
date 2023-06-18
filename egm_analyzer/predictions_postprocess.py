@@ -53,7 +53,7 @@ def fix_peaks(
                     result[i].append(found_peak)
 
         pivot = index
-        window_frame: list[Peak] = []
+        window_frame = []
 
     return result
 
