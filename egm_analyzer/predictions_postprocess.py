@@ -8,7 +8,7 @@ class Peak(NamedTuple):
 
 
 def labels_to_pairs(labels: list[list[float]]) -> tuple[list[Peak], set[int]]:
-    peaks = []
+    peaks: list[Peak] = []
     empty_channels = set()
     channels_lengths = []
 
