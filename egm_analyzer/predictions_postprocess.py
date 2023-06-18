@@ -3,7 +3,7 @@ from typing import NamedTuple
 
 
 class Peak(NamedTuple):
-    index: float
+    peak_index: float
     channel: int
 
 
@@ -23,7 +23,7 @@ def labels_to_pairs(labels: list[list[float]]) -> tuple[list[Peak], set[int]]:
         if channel_length < mean_length
     }
 
-    return sorted(peaks, key=lambda peak: peak.index), empty_channels
+    return sorted(peaks, key=lambda peak: peak.peak_index), empty_channels
 
 
 def fix_peaks(
@@ -34,16 +34,16 @@ def fix_peaks(
     result: list[list[float]] = [[] for __ in range(64)]
     threshold = (64 - len(empty_channels)) // 2
 
-    pivot = peaks[0].index
+    pivot = peaks[0].peak_index
     window_frame: list[Peak] = []
 
     for peak in peaks:
-        if (index := peak.index) < pivot + window_size:
+        if (index := peak.peak_index) < pivot + window_size:
             window_frame.append(peak)
             continue
 
         if len(window_frame) > threshold:
-            channel_index = {peak.channel: peak.index for peak in window_frame}
+            channel_index = {peak.channel: peak.peak_index for peak in window_frame}
 
             for i in range(len(result)):
                 if i in empty_channels:
