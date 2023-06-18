@@ -135,7 +135,9 @@ def main() -> int:
     )
     tp_fp_args, fn_args = tee(metrics_args, 2)
 
-    total_tp, total_fp = reduce(elementwise_sum, starmap(calculate_tp_fp, tp_fp_args))
+    total_tp, total_fp = reduce(
+        elementwise_sum, starmap(calculate_tp_fp, tp_fp_args),  # type: ignore
+    )
     total_fn = reduce(lambda x, y: x + y, starmap(calculate_fn, fn_args))
 
     precision = total_tp / denominator if (denominator := total_tp + total_fp) != 0 else 0
