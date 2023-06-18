@@ -38,4 +38,5 @@ exclude = ["test"]
 egm_analyzer = ["py.typed"]
 
 [project.scripts]
-analyze_egm = "egm_analyzer.cli:main"
+analyze_egm = "egm_analyzer.cli.analyze_egm:main"
+calculate_metrics = "egm_analyzer.cli.calculate_metrics:main"
