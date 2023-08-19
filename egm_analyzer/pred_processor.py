@@ -1,13 +1,15 @@
 import numpy as np
 from scipy.interpolate import CubicSpline
 
+from egm_analyzer.types import Hz
+
 
 class Compressor:
     def __init__(
             self,
             window_size: int = 100,
-            signal_frequency: int = 5000,
-            target_frequency: int = 20_000,
+            signal_frequency: Hz = 5000,
+            target_frequency: Hz = 20_000,
     ) -> None:
 
         self._window_size = window_size
@@ -52,7 +54,7 @@ class Compressor:
 
             relative_minimum_derivative_index = (
                 self.find_relative_minimum_derivative_index(
-                    signal[group_start : min(group_end + 1, len(signal))],
+                    signal[group_start:min(group_end + 1, len(signal))],
                 )
             )
 
@@ -69,7 +71,7 @@ class Compressor:
 
         relative_minimum_derivative_index = (
             self.find_relative_minimum_derivative_index(
-                signal[group_start : min(group_end + 1, len(signal))],
+                signal[group_start:min(group_end + 1, len(signal))],
             )
         )
 

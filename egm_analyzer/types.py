@@ -1,0 +1,2 @@
+Hz = int
+Gb = int

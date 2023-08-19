@@ -11,6 +11,7 @@ from egm_analyzer.models.onnx_wrapper import OnnxModelWrapper
 from egm_analyzer.pred_processor import Compressor
 from egm_analyzer.predictions_postprocess import postprocess_predictions
 from egm_analyzer.signal_processor import SignalProcessor
+from egm_analyzer.types import Gb
 
 
 class EGMAnalyzerNamespace(argparse.Namespace):
@@ -21,7 +22,7 @@ class EGMAnalyzerNamespace(argparse.Namespace):
     signal_path: Path
     threshold: float
     remove_temp_file: bool
-    gpu_mem_limit: int
+    gpu_mem_limit: Gb
 
 
 def parse_args() -> EGMAnalyzerNamespace:
@@ -71,7 +72,7 @@ def parse_args() -> EGMAnalyzerNamespace:
     )
     parser.add_argument(
         '--gpu_mem_limit',
-        type=int,
+        type=Gb,
         help='GPU memory limit in GB',
         default=8,
     )
