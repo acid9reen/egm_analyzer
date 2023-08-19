@@ -1,13 +1,15 @@
 import statistics
 from typing import NamedTuple
 
+from egm_analyzer.types import MicroSecond
+
 
 class Peak(NamedTuple):
-    peak_index: float
+    peak_index: MicroSecond
     channel: int
 
 
-def labels_to_pairs(labels: list[list[float]]) -> tuple[list[Peak], set[int]]:
+def labels_to_pairs(labels: list[list[MicroSecond]]) -> tuple[list[Peak], set[int]]:
     peaks: list[Peak] = []
     empty_channels = set()
     channels_lengths = []
@@ -29,7 +31,7 @@ def labels_to_pairs(labels: list[list[float]]) -> tuple[list[Peak], set[int]]:
 def fix_peaks(
     peaks: list[Peak],
     empty_channels: set[int],
-    window_size: float = 20,
+    window_size: MicroSecond = 20,
 ) -> list[list[float]]:
     result: list[list[float]] = [[] for __ in range(64)]
     threshold = (64 - len(empty_channels)) // 2
@@ -59,9 +61,9 @@ def fix_peaks(
 
 
 def postprocess_predictions(
-        labels: list[list[float]],
-        window_size: float,
-) -> list[list[float]]:
+        labels: list[list[MicroSecond]],
+        window_size: MicroSecond,
+) -> list[list[MicroSecond]]:
     peaks, empty_channels = labels_to_pairs(labels)
     result = fix_peaks(peaks, empty_channels, window_size)
 

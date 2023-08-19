@@ -1,5 +1,3 @@
-import csv
-from pathlib import Path
 from typing import Generator
 
 import numpy as np
@@ -7,6 +5,7 @@ from tqdm import tqdm
 
 from egm_analyzer.models.model import PredictionModel
 from egm_analyzer.pred_processor import Compressor
+from egm_analyzer.types import MicroSecond
 
 
 seconds = int
@@ -62,7 +61,7 @@ class SignalProcessor(object):
         self._intersection = intersection
         self._compressor = compressor
 
-    def process(self, signal: np.ndarray) -> list[list[float]]:
+    def process(self, signal: np.ndarray) -> list[list[MicroSecond]]:
         result: list[list[float]] = []
 
         for channel in tqdm(signal, total=len(signal), colour='green'):

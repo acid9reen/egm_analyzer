@@ -2,6 +2,7 @@ import numpy as np
 from scipy.interpolate import CubicSpline
 
 from egm_analyzer.types import Hz
+from egm_analyzer.types import MicroSecond
 
 
 class Compressor:
@@ -37,7 +38,7 @@ class Compressor:
 
         return abscis_min_der_index
 
-    def compress(self, preds: np.ndarray, signal: np.ndarray) -> list[float]:
+    def compress(self, preds: np.ndarray, signal: np.ndarray) -> list[MicroSecond]:
         if len(preds) < 1:
             return []
 
