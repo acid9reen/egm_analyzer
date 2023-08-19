@@ -1,7 +1,7 @@
 import argparse
 import csv
+import json
 import multiprocessing as mp
-import os
 from itertools import zip_longest
 from pathlib import Path
 
@@ -18,10 +18,10 @@ class EGMAnalyzerNamespace(argparse.Namespace):
     batch_size: int
     model_path: Path
     num_workers: int
-    output_file: Path
+    output_folder: Path
+    output_filename: str
     signal_path: Path
     threshold: float
-    remove_temp_file: bool
     gpu_mem_limit: Gb
 
 
@@ -60,15 +60,14 @@ def parse_args() -> EGMAnalyzerNamespace:
         required=True,
     )
     parser.add_argument(
-        '-o', '--output_filepath',
-        type=Path,
+        '-o', '--output_filename',
         help='Path to output file',
-        default='./out',
+        default='egm_analyzer_result',
     )
     parser.add_argument(
-        '--remove_temp_file',
-        action='store_true',
-        help='Remove intermediate .csv file',
+        '-f', '--output_folder',
+        help='Output folder',
+        default=Path('./out'),
     )
     parser.add_argument(
         '--gpu_mem_limit',
@@ -97,8 +96,11 @@ def main() -> int:
         'CPUExecutionProvider',
     ]
 
-    temp_filename = '.temp_' + args.output_filepath.name
-    temp_filepath = args.output_filepath.parent / temp_filename
+    prediction_filename = args.output_filename + '.json'
+    prediction_filepath = args.output_folder / prediction_filename
+
+    output_filename = args.output_filename + '.csv'
+    output_filepath = args.output_folder / output_filename
 
     predictor = OnnxModelWrapper(args.model_path, providers=providers)
     compressor = Compressor(target_frequency=20_000)
@@ -113,20 +115,15 @@ def main() -> int:
     result = signal_processor.process(signal)
     result = postprocess_predictions(result, 100_000)
 
-    with open(temp_filepath, 'w', newline='') as out:
+    # Do not forget to make output folder
+    args.output_folder.mkdir(exist_ok=True, parents=True)
+
+    # Save prediction file
+    with open(prediction_filepath, 'w') as out:
+        json.dump(result, out)
+
+    with open(output_filepath, 'w', newline='') as out:
         csv_writer = csv.writer(out, dialect='excel')
-        for channel in result:
-            csv_writer.writerow(channel)
-
-    with open(temp_filepath, 'r', newline='') as temp, \
-         open(args.output_filepath, 'w', newline='') as out:
-
-        csv_reader = csv.reader(temp, dialect='excel')
-        csv_writer = csv.writer(out, dialect='excel')
-
-        csv_writer.writerows(zip_longest(*csv_reader, fillvalue=''))
-
-    if args.remove_temp_file:
-        os.remove(temp_filepath)
+        csv_writer.writerows(zip_longest(*result, fillvalue=''))
 
     return 0
