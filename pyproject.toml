@@ -14,7 +14,8 @@ version = "0.1.0"
 requires-python = ">=3.10"
 dependencies = [
     "numpy",
-    "onnxruntime",
+    "onnxruntime-gpu",
+    "scipy",
     "tqdm",
 ]
 
@@ -35,3 +36,7 @@ exclude = ["test"]
 
 [tool.setuptools.package-data]
 egm_analyzer = ["py.typed"]
+
+[project.scripts]
+analyze_egm = "egm_analyzer.cli.analyze_egm:main"
+calculate_metrics = "egm_analyzer.cli.calculate_metrics:main"
