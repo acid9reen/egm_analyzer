@@ -12,6 +12,7 @@ from egm_analyzer.pred_processor import Compressor
 from egm_analyzer.predictions_postprocess import postprocess_predictions
 from egm_analyzer.signal_processor import SignalProcessor
 from egm_analyzer.types import Gb
+from egm_analyzer.types import Index
 
 
 class EGMAnalyzerNamespace(argparse.Namespace):
@@ -120,7 +121,8 @@ def main() -> int:
 
     # Save prediction file
     with open(prediction_filepath, 'w') as out:
-        json.dump(result, out)
+        indexes: list[Index] = (np.array(result) / 200).tolist()
+        json.dump(indexes, out)
 
     with open(output_filepath, 'w', newline='') as out:
         csv_writer = csv.writer(out, dialect='excel')
