@@ -121,7 +121,14 @@ def main() -> int:
 
     # Save prediction file
     with open(prediction_filepath, 'w') as out:
-        indexes: list[Index] = (np.array(result) / 200).tolist()
+        indexes: list[list[Index]] = []
+
+        for channel in result:
+            tmp = []
+            for number in channel:
+                tmp.append(number / 200)
+            indexes.append(tmp)
+
         json.dump(indexes, out)
 
     with open(output_filepath, 'w', newline='') as out:
