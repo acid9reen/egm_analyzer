@@ -1,5 +1,4 @@
 import argparse
-import csv
 import json
 from functools import reduce
 from itertools import cycle
@@ -61,16 +60,10 @@ def read_ground_truth(filepath: Path) -> list[set[int]]:
 
 
 def read_predictions(filepath: Path) -> list[set[int]]:
-    labels: list[set[int]] = []
-
     with open(filepath, 'r') as input_:
-        csv_reader = csv.reader(input_, dialect='excel')
+        labels: list[list[int]] = json.load(input_)
 
-        for row in csv_reader:
-            channel = set(map(lambda x: round(float(x) / 200), row))
-            labels.append(channel)
-
-    return labels
+    return [set(map(int, channel)) for channel in labels]
 
 
 def calculate_tp_fp(
