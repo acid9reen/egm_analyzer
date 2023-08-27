@@ -113,7 +113,7 @@ def elementwise_sum(
         first: tuple[float, ...],
         second: tuple[float, ...],
 ) -> tuple[float, ...]:
-    return tuple([sum(x) for x in zip(first, second)])
+    return tuple([sum(x) for x in zip(first, second, strict=True)])
 
 
 def main() -> int:
