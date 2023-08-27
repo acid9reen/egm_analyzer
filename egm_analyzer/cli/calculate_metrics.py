@@ -1,7 +1,7 @@
 import argparse
 import json
 from functools import reduce
-from itertools import cycle
+from itertools import repeat
 from itertools import starmap
 from itertools import tee
 from pathlib import Path
@@ -124,7 +124,7 @@ def main() -> int:
     metrics_args = zip(
         ground_truth,
         predictions,
-        cycle([args.window_size]),
+        repeat(args.window_size),
     )
     tp_fp_args, fn_args = tee(metrics_args, 2)
 
