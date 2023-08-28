@@ -1,6 +1,7 @@
 import argparse
 import json
-from functools import reduce
+from collections import defaultdict
+from itertools import count
 from itertools import repeat
 from itertools import starmap
 from itertools import tee
@@ -63,16 +64,18 @@ def read_predictions(filepath: Path) -> list[set[int]]:
     with open(filepath, 'r') as input_:
         labels: list[list[int]] = json.load(input_)
 
-    return [set(map(int, channel)) for channel in labels]
+    return [set(map(round, channel)) for channel in labels]
 
 
 def calculate_tp_fp(
         ground_truth: set[int],
         predictions: set[int],
         window_size: int,
-) -> tuple[int, int]:
+        channel: int,
+) -> tuple[int, int, dict[int, list[int]]]:
     offset = window_size // 2
     tp, fp = 0, 0
+    errors: dict[int, list[int]] = defaultdict(list)
 
     for target_index in predictions:
         matched = any(
@@ -82,19 +85,27 @@ def calculate_tp_fp(
             ),
         )
 
-        tp += int(matched)
-        fp += int(not matched)
+        if matched:
+            tp += int(matched)
+            continue
 
-    return tp, fp
+        fp += int(not matched)
+        errors[channel].append(target_index)
+
+    errors[channel].sort()
+
+    return tp, fp, errors
 
 
 def calculate_fn(
         ground_truth: set[int],
         predictions: set[int],
         window_size: int,
-) -> int:
+        channel: int,
+) -> tuple[int, dict[int, list[int]]]:
     offset = window_size // 2
     fn = 0
+    errors: dict[int, list[int]] = defaultdict(list)
 
     for target_index in ground_truth:
         matched = any(
@@ -104,9 +115,13 @@ def calculate_fn(
             ),
         )
 
-        fn += int(not matched)
+        if matched:
+            continue
 
-    return fn
+        fn += 1
+        errors[channel].append(target_index)
+
+    return fn, errors
 
 
 def elementwise_sum(
@@ -125,13 +140,29 @@ def main() -> int:
         ground_truth,
         predictions,
         repeat(args.window_size),
+        count(0, 1),
     )
     tp_fp_args, fn_args = tee(metrics_args, 2)
 
-    total_tp, total_fp = reduce(
-        elementwise_sum, starmap(calculate_tp_fp, tp_fp_args),  # type: ignore
-    )
-    total_fn = reduce(lambda x, y: x + y, starmap(calculate_fn, fn_args))
+    tp_fp_res = starmap(calculate_tp_fp, tp_fp_args)
+    total_tp, total_fp, fp_errors = 0, 0, {}
+    for tp, fp, errors in tp_fp_res:
+        total_tp += tp
+        total_fp += fp
+        fp_errors |= errors
+
+    fn_res = starmap(calculate_fn, fn_args)
+
+    total_fn, fn_errors = 0, {}
+    for fn, errors in fn_res:
+        total_fn += fn
+        fn_errors |= errors
+
+    errors = {'fp': fp_errors, 'fn': fn_errors}
+
+    args.output_file.parent.mkdir(parents=True, exist_ok=True)
+    with open(args.output_file, 'w') as out:
+        json.dump(errors, out)
 
     precision = total_tp / denominator if (denominator := total_tp + total_fp) != 0 else 0
     recall = total_tp / denominator if (denominator := total_tp + total_fn) != 0 else 0
@@ -142,3 +173,7 @@ def main() -> int:
     print(f'F1_score = {(2 * precision * recall) / (precision + recall):.5f}')
 
     return 0
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())
