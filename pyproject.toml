@@ -39,4 +39,5 @@ egm_analyzer = ["py.typed"]
 
 [project.scripts]
 analyze_egm = "egm_analyzer.cli.analyze_egm:main"
+analyze_egm_many = "egm_analyzer.cli.analyze_egm_many:main"
 calculate_metrics = "egm_analyzer.cli.calculate_metrics:main"
