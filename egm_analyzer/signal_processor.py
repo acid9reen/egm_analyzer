@@ -24,7 +24,13 @@ def batcher(
         start_index = batch_index * (step - intersection_length)
         stop_index = start_index + step
 
-        batch.append([signal[start_index:stop_index]])
+        signal_cutout = signal[start_index:stop_index]
+        min_ = signal_cutout.min()
+        max_ = signal_cutout.max()
+        scale = max(abs(min_), abs(max_))
+        scaled = signal_cutout / scale
+
+        batch.append([scaled])
 
         if len(batch) % batch_size == 0:
             try:
