@@ -46,7 +46,7 @@ class Compressor:
         preds = np.sort(preds)
 
         peaks_indexes: list[Peak] = []
-        group_start: Index = preds[0]
+        group_start: int = int(preds[0])
         group_end = group_start
 
         for pred in preds:

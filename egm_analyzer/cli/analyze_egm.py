@@ -12,8 +12,9 @@ from egm_analyzer.pred_processor import Compressor
 from egm_analyzer.predictions_postprocess import postprocess_predictions
 from egm_analyzer.signal_processor import SignalProcessor
 from egm_analyzer.types import Gb
+from egm_analyzer.types import InferenceMeta
 from egm_analyzer.types import InferenceResult
-from egm_analyzer.types import Meta
+from egm_analyzer.types import Peak
 
 
 class EGMAnalyzerNamespace(argparse.Namespace):
@@ -122,7 +123,7 @@ def main() -> int:
 
     result = InferenceResult(
         peaks=peaks,
-        meta=Meta(
+        meta=InferenceMeta(
             threshold=args.threshold,
             path_to_model=args.model_path.resolve().as_posix(),
             path_to_signal=args.signal_path.resolve().as_posix(),
@@ -137,7 +138,7 @@ def main() -> int:
         csv_writer = csv.writer(out, dialect='excel')
         for row in zip_longest(*peaks, fillvalue=''):
             csv_writer.writerow(
-                map(lambda p: p.position * 200 if p else p, row),
+                map(lambda p: p.position * 200 if isinstance(p, Peak) else p, row),
             )
 
     return 0
