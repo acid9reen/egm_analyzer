@@ -5,7 +5,7 @@ from tqdm import tqdm
 
 from egm_analyzer.models.model import PredictionModel
 from egm_analyzer.pred_processor import Compressor
-from egm_analyzer.types import MicroSecond
+from egm_analyzer.types import Peak
 
 
 seconds = int
@@ -67,8 +67,8 @@ class SignalProcessor(object):
         self._intersection = intersection
         self._compressor = compressor
 
-    def process(self, signal: np.ndarray) -> list[list[MicroSecond]]:
-        result: list[list[float]] = []
+    def process(self, signal: np.ndarray) -> list[list[Peak]]:
+        result: list[list[Peak]] = []
 
         for channel in tqdm(signal, total=len(signal), colour='green'):
             channel_predictions_batches: list[np.ndarray] = []

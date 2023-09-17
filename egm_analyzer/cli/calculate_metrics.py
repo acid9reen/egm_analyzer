@@ -7,6 +7,8 @@ from itertools import starmap
 from itertools import tee
 from pathlib import Path
 
+from egm_analyzer.types import InferenceResult
+
 
 class CalculateMetricsNamespace(argparse.Namespace):
     predictions_filepath: Path
@@ -62,9 +64,9 @@ def read_ground_truth(filepath: Path) -> list[set[int]]:
 
 def read_predictions(filepath: Path) -> list[set[int]]:
     with open(filepath, 'r') as input_:
-        labels: list[list[int]] = json.load(input_)
+        labels = InferenceResult(**json.load(input_))
 
-    return [set(map(round, channel)) for channel in labels]
+    return [set(map(lambda x: round(x.position), channel)) for channel in labels.peaks]
 
 
 def calculate_tp_fp(
@@ -167,10 +169,15 @@ def main() -> int:
     precision = total_tp / denominator if (denominator := total_tp + total_fp) != 0 else 0
     recall = total_tp / denominator if (denominator := total_tp + total_fn) != 0 else 0
 
+    try:
+        f1_score = (2 * precision * recall) / (precision + recall)
+    except ZeroDivisionError:
+        f1_score = 0
+
     print(f'{total_tp=}, {total_fp=}, {total_fn=}', sep=', ')
     print(f'Precision = {precision:.5f}')
     print(f'Recall = {recall:.5f}')
-    print(f'F1_score = {(2 * precision * recall) / (precision + recall):.5f}')
+    print(f'F1_score = {f1_score:.5f}')
 
     return 0
 

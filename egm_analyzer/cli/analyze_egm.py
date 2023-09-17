@@ -12,7 +12,8 @@ from egm_analyzer.pred_processor import Compressor
 from egm_analyzer.predictions_postprocess import postprocess_predictions
 from egm_analyzer.signal_processor import SignalProcessor
 from egm_analyzer.types import Gb
-from egm_analyzer.types import Index
+from egm_analyzer.types import InferenceResult
+from egm_analyzer.types import Meta
 
 
 class EGMAnalyzerNamespace(argparse.Namespace):
@@ -113,26 +114,34 @@ def main() -> int:
     )
 
     signal = np.load(args.signal_path, mmap_mode='r')
-    result = signal_processor.process(signal)
-    result = postprocess_predictions(result, 100_000)
+    peaks = signal_processor.process(signal)
+    peaks = postprocess_predictions(peaks, 200)
 
     # Do not forget to make output folder
     args.output_folder.mkdir(exist_ok=True, parents=True)
 
+    result = InferenceResult(
+        peaks=peaks,
+        meta=Meta(
+            threshold=args.threshold,
+            path_to_model=args.model_path.resolve().as_posix(),
+            path_to_signal=args.signal_path.resolve().as_posix(),
+        ),
+    )
+
     # Save prediction file
     with open(prediction_filepath, 'w') as out:
-        indexes: list[list[Index]] = []
-
-        for channel in result:
-            tmp = []
-            for number in channel:
-                tmp.append(number / 200)
-            indexes.append(tmp)
-
-        json.dump(indexes, out)
+        json.dump(result.model_dump(), out)
 
     with open(output_filepath, 'w', newline='') as out:
         csv_writer = csv.writer(out, dialect='excel')
-        csv_writer.writerows(zip_longest(*result, fillvalue=''))
+        for row in zip_longest(*peaks, fillvalue=''):
+            csv_writer.writerow(
+                map(lambda p: p.position * 200 if p else p, row),
+            )
 
     return 0
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())

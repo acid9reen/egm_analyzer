@@ -2,7 +2,9 @@ import numpy as np
 from scipy.interpolate import CubicSpline
 
 from egm_analyzer.types import Hz
-from egm_analyzer.types import MicroSecond
+from egm_analyzer.types import Index
+from egm_analyzer.types import Peak
+from egm_analyzer.types import Stage
 
 
 class Compressor:
@@ -14,13 +16,12 @@ class Compressor:
     ) -> None:
 
         self._window_size = window_size
-        self._indices_to_microseconds_constant = int(1 / target_frequency * 1e6)
         self._signal_to_target_frequency = target_frequency / signal_frequency
 
     def find_relative_minimum_derivative_index(
             self,
             signal_cutout: np.ndarray,
-    ) -> int | None:
+    ) -> Index | None:
         if len(signal_cutout) < 5:
             return None
 
@@ -36,16 +37,16 @@ class Compressor:
 
         abscis_min_der_index = int(np.argmin(cs(high_res_indexes, 1)))
 
-        return abscis_min_der_index
+        return abscis_min_der_index / self._signal_to_target_frequency
 
-    def compress(self, preds: np.ndarray, signal: np.ndarray) -> list[MicroSecond]:
+    def compress(self, preds: np.ndarray, signal: np.ndarray) -> list[Peak]:
         if len(preds) < 1:
             return []
 
         preds = np.sort(preds)
 
-        peaks_indexes = []
-        group_start = preds[0]
+        peaks_indexes: list[Peak] = []
+        group_start: Index = preds[0]
         group_end = group_start
 
         for pred in preds:
@@ -61,10 +62,11 @@ class Compressor:
 
             if relative_minimum_derivative_index is not None:
                 peaks_indexes.append(
-                    (
-                        relative_minimum_derivative_index
-                        + self._signal_to_target_frequency * group_start
-                    ) * self._indices_to_microseconds_constant,
+                    Peak(
+                        position=relative_minimum_derivative_index + group_start,
+                        creation_stage=Stage.PEAK_SEARCH,
+                        search_segment=(group_start, group_end),
+                    ),
                 )
 
             group_start = pred
@@ -78,10 +80,11 @@ class Compressor:
 
         if relative_minimum_derivative_index is not None:
             peaks_indexes.append(
-                (
-                    relative_minimum_derivative_index
-                    + self._signal_to_target_frequency * group_start
-                ) * self._indices_to_microseconds_constant,
+                Peak(
+                    position=relative_minimum_derivative_index + group_start,
+                    creation_stage=Stage.PEAK_SEARCH,
+                    search_segment=(group_start, group_end),
+                ),
             )
 
         return peaks_indexes

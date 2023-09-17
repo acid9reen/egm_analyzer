@@ -15,6 +15,7 @@ requires-python = ">=3.10"
 dependencies = [
     "numpy",
     "onnxruntime-gpu",
+    "pydantic",
     "scipy",
     "tqdm",
 ]
