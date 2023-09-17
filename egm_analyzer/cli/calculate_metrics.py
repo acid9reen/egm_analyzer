@@ -1,20 +1,24 @@
 import argparse
 import json
-from collections import defaultdict
 from itertools import count
 from itertools import repeat
 from itertools import starmap
 from itertools import tee
 from pathlib import Path
 
+from egm_analyzer.types import Error
+from egm_analyzer.types import ErrorType
 from egm_analyzer.types import InferenceResult
+from egm_analyzer.types import Metrics
+from egm_analyzer.types import MetricsMeta
+from egm_analyzer.types import MetricsResult
 
 
 class CalculateMetricsNamespace(argparse.Namespace):
-    predictions_filepath: Path
+    inference_result_filepath: Path
     ground_truth_filepath: Path
     num_workers: int
-    output_file: Path
+    output_folder: Path
     window_size: int
 
 
@@ -22,9 +26,9 @@ def parse_args() -> CalculateMetricsNamespace:
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-        'predictions_filepath',
+        'inference_result_filepath',
         type=Path,
-        help='Path to .csv file (tmp one)',
+        help='Path to .json inference result file',
     )
     parser.add_argument(
         'ground_truth_filepath',
@@ -35,20 +39,21 @@ def parse_args() -> CalculateMetricsNamespace:
         '-n',
         '--num_workers',
         type=int,
-        default=1,
+        default=4,
         help='Number of workers for metrics calculation',
     )
     parser.add_argument(
         '-o',
-        '--output_file',
+        '--output_folder',
         type=Path,
-        help='Output file to store information about prediction errors',
+        default=Path('./out/metrics_results'),
+        help='Output folder save metrics result into',
     )
     parser.add_argument(
         '-s',
         '--window_size',
         type=int,
-        default=3,
+        default=7,
         help='Length of window size for verification',
     )
 
@@ -74,10 +79,10 @@ def calculate_tp_fp(
         predictions: set[int],
         window_size: int,
         channel: int,
-) -> tuple[int, int, dict[int, list[int]]]:
+) -> tuple[int, int, list[Error]]:
     offset = window_size // 2
     tp, fp = 0, 0
-    errors: dict[int, list[int]] = defaultdict(list)
+    errors: list[Error] = []
 
     for target_index in predictions:
         matched = any(
@@ -92,9 +97,13 @@ def calculate_tp_fp(
             continue
 
         fp += int(not matched)
-        errors[channel].append(target_index)
-
-    errors[channel].sort()
+        errors.append(
+            Error(
+                position=target_index,
+                channel=channel,
+                error_type=ErrorType.FALSE_POSITIVE,
+            ),
+        )
 
     return tp, fp, errors
 
@@ -104,10 +113,10 @@ def calculate_fn(
         predictions: set[int],
         window_size: int,
         channel: int,
-) -> tuple[int, dict[int, list[int]]]:
+) -> tuple[int, list[Error]]:
     offset = window_size // 2
     fn = 0
-    errors: dict[int, list[int]] = defaultdict(list)
+    errors: list[Error] = []
 
     for target_index in ground_truth:
         matched = any(
@@ -121,7 +130,13 @@ def calculate_fn(
             continue
 
         fn += 1
-        errors[channel].append(target_index)
+        errors.append(
+            Error(
+                position=target_index,
+                channel=channel,
+                error_type=ErrorType.FALSE_NEGATIVE,
+            ),
+        )
 
     return fn, errors
 
@@ -136,7 +151,7 @@ def elementwise_sum(
 def main() -> int:
     args = parse_args()
     ground_truth = read_ground_truth(args.ground_truth_filepath)
-    predictions = read_predictions(args.predictions_filepath)
+    predictions = read_predictions(args.inference_result_filepath)
 
     metrics_args = zip(
         ground_truth,
@@ -147,24 +162,21 @@ def main() -> int:
     tp_fp_args, fn_args = tee(metrics_args, 2)
 
     tp_fp_res = starmap(calculate_tp_fp, tp_fp_args)
-    total_tp, total_fp, fp_errors = 0, 0, {}
+
+    total_errors: list[Error] = []
+
+    total_tp, total_fp = 0, 0
     for tp, fp, errors in tp_fp_res:
         total_tp += tp
         total_fp += fp
-        fp_errors |= errors
+        total_errors.extend(errors)
 
     fn_res = starmap(calculate_fn, fn_args)
 
-    total_fn, fn_errors = 0, {}
+    total_fn = 0
     for fn, errors in fn_res:
         total_fn += fn
-        fn_errors |= errors
-
-    errors = {'fp': fp_errors, 'fn': fn_errors}
-
-    args.output_file.parent.mkdir(parents=True, exist_ok=True)
-    with open(args.output_file, 'w') as out:
-        json.dump(errors, out)
+        total_errors.extend(errors)
 
     precision = total_tp / denominator if (denominator := total_tp + total_fp) != 0 else 0
     recall = total_tp / denominator if (denominator := total_tp + total_fn) != 0 else 0
@@ -174,7 +186,29 @@ def main() -> int:
     except ZeroDivisionError:
         f1_score = 0
 
-    print(f'{total_tp=}, {total_fp=}, {total_fn=}', sep=', ')
+    metrics_result = MetricsResult(
+        errors=total_errors,
+        metrics=Metrics(
+            precision=precision,
+            recall=recall,
+            f1_score=f1_score,
+        ),
+        meta=MetricsMeta(
+            inference_result_path=args.inference_result_filepath.resolve().as_posix(),
+            ground_truth_path=args.ground_truth_filepath.resolve().as_posix(),
+        ),
+    )
+
+    output_filename = '_'.join([
+        args.inference_result_filepath.stem,
+        'metrics',
+    ]) + args.inference_result_filepath.suffix
+
+    args.output_folder.mkdir(parents=True, exist_ok=True)
+    with open(args.output_folder / output_filename, 'w') as out:
+        json.dump(metrics_result.model_dump(), out)
+
+    print(f'{total_tp=}, {total_fp=}, {total_fn=}')
     print(f'Precision = {precision:.5f}')
     print(f'Recall = {recall:.5f}')
     print(f'F1_score = {f1_score:.5f}')

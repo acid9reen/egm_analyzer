@@ -20,7 +20,7 @@ class Peak(BaseModel):
     search_segment: tuple[Index, Index] | None
 
 
-class Meta(BaseModel):
+class InferenceMeta(BaseModel):
     threshold: float
     path_to_model: str
     path_to_signal: str
@@ -28,4 +28,32 @@ class Meta(BaseModel):
 
 class InferenceResult(BaseModel):
     peaks: list[list[Peak]]
-    meta: Meta
+    meta: InferenceMeta
+
+
+class ErrorType(str, Enum):
+    FALSE_POSITIVE = 'false_positive'
+    FALSE_NEGATIVE = 'false_negative'
+
+
+class Error(BaseModel):
+    position: Index
+    channel: int
+    error_type: ErrorType
+
+
+class Metrics(BaseModel):
+    precision: float
+    recall: float
+    f1_score: float
+
+
+class MetricsMeta(BaseModel):
+    inference_result_path: str
+    ground_truth_path: str
+
+
+class MetricsResult(BaseModel):
+    errors: list[Error]
+    metrics: Metrics
+    meta: MetricsMeta
