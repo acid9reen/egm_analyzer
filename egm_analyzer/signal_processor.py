@@ -1,5 +1,3 @@
-import csv
-from pathlib import Path
 from typing import Generator
 
 import numpy as np
@@ -7,6 +5,7 @@ from tqdm import tqdm
 
 from egm_analyzer.models.model import PredictionModel
 from egm_analyzer.pred_processor import Compressor
+from egm_analyzer.types import Peak
 
 
 seconds = int
@@ -25,7 +24,13 @@ def batcher(
         start_index = batch_index * (step - intersection_length)
         stop_index = start_index + step
 
-        batch.append([signal[start_index:stop_index]])
+        signal_cutout = signal[start_index:stop_index]
+        min_ = signal_cutout.min()
+        max_ = signal_cutout.max()
+        scale = max(abs(min_), abs(max_))
+        scaled = signal_cutout / scale
+
+        batch.append([scaled])
 
         if len(batch) % batch_size == 0:
             try:
@@ -62,8 +67,8 @@ class SignalProcessor(object):
         self._intersection = intersection
         self._compressor = compressor
 
-    def process(self, signal: np.ndarray) -> list[list[float]]:
-        result: list[list[float]] = []
+    def process(self, signal: np.ndarray) -> list[list[Peak]]:
+        result: list[list[Peak]] = []
 
         for channel in tqdm(signal, total=len(signal), colour='green'):
             channel_predictions_batches: list[np.ndarray] = []
