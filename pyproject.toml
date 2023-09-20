@@ -24,8 +24,11 @@ dependencies = [
 test = [
     "pytest",
 ]
+gui = [
+    "dearpygui"
+]
 dev = [
-    "egm_analyzer[test]",
+    "egm_analyzer[test,gui]",
     "flake8",
     "mypy",
     "pre-commit",
@@ -41,3 +44,4 @@ egm_analyzer = ["py.typed"]
 [project.scripts]
 analyze_egm = "egm_analyzer.cli.analyze_egm:main"
 calculate_metrics = "egm_analyzer.cli.calculate_metrics:main"
+analyze_errors = "egm_analyzer.gui.error_analyzer:main"
