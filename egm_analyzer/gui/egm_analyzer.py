@@ -798,7 +798,7 @@ class Main(object):
         threshold = dpg.get_value(self._threshold_input_tag)
 
         compressor = Compressor(
-            target_frequency=dpg.get_value(self._target_frequency_tag),
+            target_frequency=dpg.get_value(self._target_frequency_tag) * 1000,
         )
         signal_processor = SignalProcessor(
             self._model,
