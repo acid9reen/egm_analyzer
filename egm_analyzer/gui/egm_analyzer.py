@@ -483,7 +483,7 @@ class Main(object):
             start,
             stop,
         ) = dpg.get_axis_limits(self._bottom_signal_x_axis_tag)
-        position = (stop - start) / 2
+        position = (stop + start) / 2
 
         drag_line = generate_uuid()
         dpg.add_drag_line(
