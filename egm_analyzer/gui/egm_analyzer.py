@@ -148,11 +148,11 @@ class Main(object):
     _deleted_drag_lines: list[str] = []
 
     # Some placeholders
-    _signal: np.ndarray
-    _inference_result_path: Path
-    _model: PredictionModel
-    _signal_path: Path
-    _model_path: Path = Path()
+    _signal: np.ndarray | None = None
+    _inference_result_path: Path | None = None
+    _model: PredictionModel | None = None
+    _signal_path: Path | None = None
+    _model_path: Path | None = None
 
     def __init__(self, *, scale: float = 1.0) -> None:
         self.scale = lambda x: round(x * scale)
@@ -545,11 +545,9 @@ class Main(object):
             peak: Peak | None = dpg.get_item_user_data(drag_line)
 
             if not peak:
-                print('Peak not found, nothing to delete')
                 continue
 
             index = find_peak(peak.position, self._peaks[channel])
-            print(f'Found index to delete: {index}')
             del self._peaks[channel][index]
 
         for drag_line in to_edit:
@@ -594,6 +592,9 @@ class Main(object):
         self._update_drag_lines(start, stop, channel)
 
     def _improve_peak_position(self, position: Index, channel: int) -> Index:
+        if self._signal is None:
+            raise RuntimeError("You need to load signal file")
+
         width = dpg.get_value(self._search_segment_width_input_tag)
         half_width = width // 2
 
@@ -623,6 +624,17 @@ class Main(object):
         inference_result = InferenceResult(**json.loads(path.read_text()))
 
         self._peaks = inference_result.peaks
+
+        if self._signal is not None:
+            start = self.sth(dpg.get_value(self._start_input_tag))
+            length = self.sth(dpg.get_value(self._signal_cutout_length_tag))
+            stop = start + length
+            channel = dpg.get_value(self._editable_channel_input_tag) - 1
+
+            self._update_editable_signal(start, length, channel)
+            self._update_drag_lines(start, stop, channel)
+
+
 
     def _update_on_signal_cutout_change_callback(
         self, sender: str, length_input: float,
@@ -721,6 +733,9 @@ class Main(object):
         self._update_drag_lines(start, stop, channel - 1)
 
     def _update_editable_signal(self, start: int, stop: int, channel: int) -> None:
+        if self._signal is None:
+            return
+
         signal_cutout = self._signal[channel][start:stop]
         xs = [(start + x) / self._SIGNAL_FREQUENCY for x in range(len(signal_cutout))]
 
@@ -729,6 +744,9 @@ class Main(object):
         dpg.fit_axis_data(self._bottom_signal_x_axis_tag)
 
     def _update_top_signal(self, start: int, stop: int) -> None:
+        if self._signal is None:
+            return
+
         for channel, series in self._channel_top_series_tags.items():
             signal_cutout = self._signal[channel][start:stop]
             xs = [(start + x) / self._SIGNAL_FREQUENCY for x in range(len(signal_cutout))]
@@ -739,6 +757,9 @@ class Main(object):
         dpg.fit_axis_data(self._top_signal_x_axis_tag)
 
     def _save_as_label_file_callback(self, sender: str, app_data: dict) -> None:
+        if self._signal_path is None:
+            return
+
         output_filename = self._signal_path.stem + '.json'
 
         try:
@@ -750,14 +771,23 @@ class Main(object):
         self._save_label_file(filepath)
 
     def _save_label_file_callback(self) -> None:
+        if not self._inference_result_path:
+            return
+
         self._save_label_file(self._inference_result_path)
 
     def _save_label_file(self, filepath: Path) -> None:
+        if self._signal_path is None:
+            return
+
+        if not (path_to_model := self._model_path):
+            path_to_model = Path()
+
         inference_result = InferenceResult(
             peaks=self._peaks,
             meta=InferenceMeta(
                 threshold=dpg.get_value(self._threshold_input_tag),
-                path_to_model=self._model_path.as_posix(),
+                path_to_model=path_to_model.as_posix(),
                 path_to_signal=self._signal_path.as_posix(),
             ),
         )
@@ -795,6 +825,9 @@ class Main(object):
         self._model = OnnxModelWrapper(path, providers)
 
     def _predict_callback(self, sender: str) -> None:
+        if not self._model or not self._signal:
+            return
+
         threshold = dpg.get_value(self._threshold_input_tag)
 
         compressor = Compressor(
@@ -819,6 +852,9 @@ class Main(object):
     def _channels_checkboxes_callback(
         self, sender: str, toggled: bool, channel_no: int,
     ) -> None:
+        if self._signal is None:
+            return
+
         top_plot_tag = self._channel_top_series_tags.pop(channel_no, None)
 
         if not toggled and top_plot_tag:
@@ -873,14 +909,16 @@ class Main(object):
         self._signal = np.load(path, mmap_mode='r')
         dpg.configure_item(self._top_signal_plot_tag, label=path.as_posix())
 
-        start = self.sth(dpg.get_value(self._start_input_tag))
-        length = self.sth(dpg.get_value(self._signal_cutout_length_tag))
-        stop = start + length
-        channel = dpg.get_value(self._editable_channel_input_tag) - 1
-
         self._generate_channel_checkboxes(len(self._signal))
-        self._update_editable_signal(start, length, channel)
-        self._update_drag_lines(start, stop, channel)
+
+        if self._peaks:
+            start = self.sth(dpg.get_value(self._start_input_tag))
+            length = self.sth(dpg.get_value(self._signal_cutout_length_tag))
+            stop = start + length
+            channel = dpg.get_value(self._editable_channel_input_tag) - 1
+
+            self._update_editable_signal(start, length, channel)
+            self._update_drag_lines(start, stop, channel)
 
 
 def main() -> None:
