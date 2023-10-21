@@ -593,7 +593,7 @@ class Main(object):
 
     def _improve_peak_position(self, position: Index, channel: int) -> Index:
         if self._signal is None:
-            raise RuntimeError("You need to load signal file")
+            raise RuntimeError('You need to load signal file')
 
         width = dpg.get_value(self._search_segment_width_input_tag)
         half_width = width // 2
