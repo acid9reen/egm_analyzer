@@ -405,7 +405,7 @@ class Main(object):
                             callback=self._delete_peaks_callback,
                         )
                         dpg.add_button(
-                            label='Сохранить',
+                            label='Применить',
                             tag=self._update_peaks_btn_tag,
                             callback=self._update_peaks_callback,
                         )
@@ -472,12 +472,12 @@ class Main(object):
         self._deleted_drag_lines = []
         self._added_drag_lines = []
 
-        dpg.set_item_label(self._update_peaks_btn_tag, 'Сохранить')
+        dpg.set_item_label(self._update_peaks_btn_tag, 'Применить')
         dpg.hide_item(self._cancel_btn_tag)
 
     def _add_peak_callback(self) -> None:
         dpg.show_item(self._cancel_btn_tag)
-        dpg.set_item_label(self._update_peaks_btn_tag, '*Сохранить')
+        dpg.set_item_label(self._update_peaks_btn_tag, '*Применить')
 
         (
             start,
@@ -504,7 +504,7 @@ class Main(object):
 
     def _delete_peaks_callback(self) -> None:
         dpg.show_item(self._cancel_btn_tag)
-        dpg.set_item_label(self._update_peaks_btn_tag, '*Сохранить')
+        dpg.set_item_label(self._update_peaks_btn_tag, '*Применить')
 
         (
             start,
@@ -523,7 +523,7 @@ class Main(object):
                 dpg.hide_item(drag_line)
 
     def _update_peaks_callback(self, sender: str) -> None:
-        dpg.set_item_label(sender, 'Сохранить')
+        dpg.set_item_label(sender, 'Применить')
 
         channel = dpg.get_value(self._editable_channel_input_tag) - 1
 
@@ -666,7 +666,7 @@ class Main(object):
     def _update_peaks_on_drag_callback(self, sender: str) -> None:
         alias = dpg.get_item_alias(sender)
         self._edited_drag_lines[alias] = dpg.get_value(sender) * self._SIGNAL_FREQUENCY
-        dpg.set_item_label(self._update_peaks_btn_tag, '*Сохранить')
+        dpg.set_item_label(self._update_peaks_btn_tag, '*Применить')
         dpg.show_item(self._cancel_btn_tag)
 
     def _update_plots_on_start_change_callback(
