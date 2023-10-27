@@ -161,9 +161,10 @@ class Main(object):
         dpg.create_context()
 
         # Set up font for cyrillic
+        font_path = Path(__file__).parent.parent / 'assets/fonts/NotoSans-Regular.ttf'
         with dpg.font_registry():
             with dpg.font(
-                'assets/fonts/NotoSans-Regular.ttf',
+                font_path.as_posix(),
                 self.scale(17),
                 tag=self._font_tag,
             ):

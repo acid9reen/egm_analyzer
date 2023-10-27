@@ -35,6 +35,9 @@ dev = [
     "types-tqdm",
 ]
 
+[tool.setuptools]
+include-package-data = true
+
 [tool.setuptools.packages.find]
 exclude = ["test"]
 
