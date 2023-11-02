@@ -160,6 +160,9 @@ class Main(object):
 
         dpg.create_context()
 
+        with dpg.handler_registry():
+            dpg.add_key_press_handler(dpg.mvKey_Spacebar, callback=self._space_pressed_callback)
+
         # Set up font for cyrillic
         font_path = Path(__file__).parent.parent / 'assets/fonts/NotoSans-Regular.ttf'
         with dpg.font_registry():
@@ -459,6 +462,11 @@ class Main(object):
         dpg.start_dearpygui()
         dpg.destroy_context()
 
+    def _space_pressed_callback(self) -> None:
+        if dpg.is_item_hovered(self._bottom_signal_plot_tag):
+            x, *__ = dpg.get_plot_mouse_pos()
+            self._add_peak(x)
+
     def _cancel_changes_callback(self, sender: str) -> None:
         start = self.sth(dpg.get_value(self._start_input_tag))
         length = self.sth(dpg.get_value(self._signal_cutout_length_tag))
@@ -477,25 +485,27 @@ class Main(object):
         dpg.hide_item(self._cancel_btn_tag)
 
     def _add_peak_callback(self) -> None:
-        dpg.show_item(self._cancel_btn_tag)
-        dpg.set_item_label(self._update_peaks_btn_tag, '*Применить')
-
         (
             start,
             stop,
         ) = dpg.get_axis_limits(self._bottom_signal_x_axis_tag)
         position = (stop + start) / 2
+        self._add_peak(position)
+
+    def _add_peak(self, pos: float) -> None:
+        dpg.show_item(self._cancel_btn_tag)
+        dpg.set_item_label(self._update_peaks_btn_tag, '*Применить')
 
         drag_line = generate_uuid()
         dpg.add_drag_line(
             color=(0, 255, 0, 150),
             thickness=3,
-            default_value=position,
+            default_value=pos,
             tag=drag_line,
             parent=self._bottom_signal_plot_tag,
             callback=self._update_peaks_on_drag_callback,
             user_data=Peak(
-                position=position * self._SIGNAL_FREQUENCY,
+                position=pos * self._SIGNAL_FREQUENCY,
                 creation_stage=Stage.HUMAN_EDIT,
                 search_segment=None,
             ),
