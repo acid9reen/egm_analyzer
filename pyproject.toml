@@ -39,7 +39,7 @@ dev = [
 include-package-data = true
 
 [tool.setuptools.packages.find]
-exclude = ["test"]
+exclude = ["test", "build*"]
 
 [tool.setuptools.package-data]
 egm_analyzer = ["py.typed"]
