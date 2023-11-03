@@ -35,14 +35,12 @@ dev = [
     "types-tqdm",
 ]
 
-[tool.setuptools]
-include-package-data = true
-
 [tool.setuptools.packages.find]
-exclude = ["test", "build*"]
+exclude = ["test"]
 
 [tool.setuptools.package-data]
 egm_analyzer = ["py.typed"]
+"egm_analyzer.assets.fonts" = ["*.ttf"]
 
 [project.scripts]
 analyze_egm = "egm_analyzer.cli.analyze_egm:main"
