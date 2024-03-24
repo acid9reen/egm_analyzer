@@ -33,6 +33,7 @@ dev = [
     "mypy",
     "pre-commit",
     "types-tqdm",
+    "egmlib@git+https://github.com/acid9reen/egmlib#main",
 ]
 
 [tool.setuptools.packages.find]

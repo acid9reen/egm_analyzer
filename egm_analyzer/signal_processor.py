@@ -2,6 +2,7 @@ from typing import Generator
 
 import numpy as np
 from tqdm import tqdm
+from egmlib.preprocess import highpass_filter, moving_avg_filter_multichannel
 
 from egm_analyzer.models.model import PredictionModel
 from egm_analyzer.pred_processor import Compressor
@@ -17,20 +18,21 @@ def batcher(
         step: int,
         intersection_length: int = 500,
 ) -> Generator[np.ndarray, None, None]:
+    signal_copy = signal.copy()
+    signal_copy = highpass_filter(signal_copy, 5000, order=2, critical_frequency=250)
+    signal_copy = moving_avg_filter_multichannel(signal_copy, size=3)
+    signal_copy = signal_copy / 1000
+
     batch = []
-    num_batches, remaining = divmod(len(signal), step - intersection_length)
+    num_batches, remaining = divmod(len(signal_copy), step - intersection_length)
 
     for batch_index in range(num_batches):
         start_index = batch_index * (step - intersection_length)
         stop_index = start_index + step
 
-        signal_cutout = signal[start_index:stop_index]
-        min_ = signal_cutout.min()
-        max_ = signal_cutout.max()
-        scale = max(abs(min_), abs(max_))
-        scaled = signal_cutout / scale
+        signal_cutout = signal_copy[start_index:stop_index]
 
-        batch.append([scaled])
+        batch.append([signal_cutout])
 
         if len(batch) % batch_size == 0:
             try:
@@ -40,7 +42,7 @@ def batcher(
 
     # Get the remaining part of the signal
     if remaining != 0:
-        batch.append([signal[-step:]])
+        batch.append([signal_copy[-step:]])
 
     # Exit on empty batch
     if not batch:
