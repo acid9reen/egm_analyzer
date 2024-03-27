@@ -2,7 +2,7 @@ from typing import Generator
 
 import numpy as np
 from tqdm import tqdm
-from egmlib.preprocess import highpass_filter, moving_avg_filter_multichannel
+from egmlib.preprocess import highpass_filter, moving_avg_filter
 
 from egm_analyzer.models.model import PredictionModel
 from egm_analyzer.pred_processor import Compressor
@@ -20,7 +20,7 @@ def batcher(
 ) -> Generator[np.ndarray, None, None]:
     signal_copy = signal.copy()
     signal_copy = highpass_filter(signal_copy, 5000, order=2, critical_frequency=250)
-    signal_copy = moving_avg_filter_multichannel(signal_copy, size=3)
+    signal_copy = moving_avg_filter(signal_copy, size=3)
     signal_copy = signal_copy / 1000
 
     batch = []
