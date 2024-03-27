@@ -21,7 +21,6 @@ class EGMAnalyzerNamespace(argparse.Namespace):
     model_path: Path
     num_workers: int
     output_folder: Path
-    output_filename: str
     signal_path: Path
     threshold: float
     gpu_mem_limit: Gb
@@ -62,11 +61,6 @@ def parse_args() -> EGMAnalyzerNamespace:
         required=True,
     )
     parser.add_argument(
-        '-o', '--output_filename',
-        help='Path to output file',
-        default='egm_analyzer_result',
-    )
-    parser.add_argument(
         '-f', '--output_folder',
         help='Output folder',
         default=Path('./out'),
@@ -84,24 +78,10 @@ def parse_args() -> EGMAnalyzerNamespace:
 def main() -> int:
     args = parse_args()
 
-    providers = [
-        (
-            'CUDAExecutionProvider',
-            {
-                'device_id': 0,
-                'arena_extend_strategy': 'kNextPowerOfTwo',
-                'gpu_mem_limit': args.gpu_mem_limit * 1024 * 1024 * 1024,
-                'cudnn_conv_algo_search': 'EXHAUSTIVE',
-                'do_copy_in_default_stream': True,
-            },
-        ),
-        'CPUExecutionProvider',
-    ]
-
-    prediction_filename = args.output_filename + '.json'
+    prediction_filename = args.signal_path.stem + '.json'
     prediction_filepath = args.output_folder / prediction_filename
 
-    output_filename = args.output_filename + '.csv'
+    output_filename = args.signal_path.stem + '.csv'
     output_filepath = args.output_folder / output_filename
 
     match model_type := args.model_path.suffix:
@@ -118,7 +98,10 @@ def main() -> int:
             predictor = TorchModelWrapper(args.model_path)
         case ".onnx":
             from egm_analyzer.models.onnx_wrapper import OnnxModelWrapper
-            predictor = OnnxModelWrapper(args.model_path, providers=providers)
+            from egm_analyzer.models.onnx_wrapper import get_providers
+            predictor = OnnxModelWrapper(
+                args.model_path, providers=get_providers(args.gpu_mem_limit)
+            )
         case _:
             raise ValueError(f"Unknown model type `{model_type}`")
 
@@ -132,7 +115,7 @@ def main() -> int:
 
     signal = np.load(args.signal_path, mmap_mode='r')
     peaks = signal_processor.process(signal)
-    peaks = postprocess_predictions(peaks, 200)
+    # peaks = postprocess_predictions(peaks, 200)
 
     # Do not forget to make output folder
     args.output_folder.mkdir(exist_ok=True, parents=True)
