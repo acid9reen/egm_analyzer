@@ -7,7 +7,6 @@ from pathlib import Path
 
 import numpy as np
 
-from egm_analyzer.models.onnx_wrapper import OnnxModelWrapper
 from egm_analyzer.pred_processor import Compressor
 from egm_analyzer.predictions_postprocess import postprocess_predictions
 from egm_analyzer.signal_processor import SignalProcessor
@@ -105,7 +104,24 @@ def main() -> int:
     output_filename = args.output_filename + '.csv'
     output_filepath = args.output_folder / output_filename
 
-    predictor = OnnxModelWrapper(args.model_path, providers=providers)
+    match model_type := args.model_path.suffix:
+        case ".pt":
+            try:
+                from egm_analyzer.models.torch_wrapper import TorchModelWrapper
+            except ImportError as e:
+                raise ImportError(
+                    """
+                    To use .pt models you need to install torch oprional
+                    dependencies (via `[torch]`)
+                    """
+                ) from e
+            predictor = TorchModelWrapper(args.model_path)
+        case ".onnx":
+            from egm_analyzer.models.onnx_wrapper import OnnxModelWrapper
+            predictor = OnnxModelWrapper(args.model_path, providers=providers)
+        case _:
+            raise ValueError(f"Unknown model type `{model_type}`")
+
     compressor = Compressor(target_frequency=20_000)
     signal_processor = SignalProcessor(
         predictor,

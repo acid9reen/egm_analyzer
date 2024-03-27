@@ -35,6 +35,9 @@ dev = [
     "types-tqdm",
     "egmlib@git+https://github.com/acid9reen/egmlib#main",
 ]
+torch = [
+    "torch",
+]
 
 [tool.setuptools.packages.find]
 exclude = ["test"]
