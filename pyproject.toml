@@ -18,6 +18,7 @@ dependencies = [
     "pydantic",
     "scipy",
     "tqdm",
+    "egmlib@git+https://github.com/acid9reen/egmlib.git@main",
 ]
 
 [project.optional-dependencies]
@@ -33,7 +34,6 @@ dev = [
     "mypy",
     "pre-commit",
     "types-tqdm",
-    "egmlib@git+https://github.com/acid9reen/egmlib#main",
 ]
 torch = [
     "torch",
