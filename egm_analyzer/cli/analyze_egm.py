@@ -63,6 +63,7 @@ def parse_args() -> EGMAnalyzerNamespace:
     parser.add_argument(
         '-f', '--output_folder',
         help='Output folder',
+        type=Path,
         default=Path('./out'),
     )
     parser.add_argument(
