@@ -73,12 +73,28 @@ class SignalProcessor(object):
     def process(self, signal: np.ndarray) -> list[list[Peak]]:
         result: list[list[Peak]] = []
 
-        for channel in tqdm(signal, total=len(signal), colour='green'):
+        stds = []
+        for channel in tqdm(signal, total=len(signal), colour='green', desc="Detecting bad channels"):
+            signal_copy = channel.copy()
+            channel_copy = highpass_filter(signal_copy, 5000, order=2, critical_frequency=250)
+            channel_copy = moving_avg_filter(signal_copy, size=3)
+
+            stds.append(channel_copy.std())
+
+        stds = np.array(stds)
+        mean_stds = np.median(stds)
+        std_stds = stds.std()
+
+        z_scores = [(x - mean_stds) / std_stds for x in stds]
+        bad_channel_indexes, *_ = set(np.nonzero(np.abs(z_scores) > 3))
+
+        for index, channel in tqdm(enumerate(signal), total=len(signal), colour='green'):
             channel_predictions_batches: list[np.ndarray] = []
 
-            for batch in batcher(channel, self._batch_size, self._step, self._intersection):
-                prediction_batch = self._model.predict(batch)
-                channel_predictions_batches.append(prediction_batch.squeeze())
+            if index not in bad_channel_indexes:
+                for batch in batcher(channel, self._batch_size, self._step, self._intersection):
+                    prediction_batch = self._model.predict(batch)
+                    channel_predictions_batches.append(prediction_batch.squeeze())
 
             channel_predictions = np.vstack(channel_predictions_batches)
 
