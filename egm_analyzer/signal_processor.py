@@ -2,6 +2,7 @@ from typing import Generator
 
 import numpy as np
 from tqdm import tqdm
+from egmlib.preprocess import highpass_filter, moving_avg_filter, scale
 
 from egm_analyzer.models.model import PredictionModel
 from egm_analyzer.pred_processor import Compressor
@@ -14,23 +15,25 @@ seconds = int
 def batcher(
         signal: np.ndarray,
         batch_size: int,
-        step: int,
+        length: int,
         intersection_length: int = 500,
 ) -> Generator[np.ndarray, None, None]:
+    signal_copy = signal.copy()
+    signal_copy = highpass_filter(signal_copy, 5000, order=2, critical_frequency=250)
+    signal_copy = moving_avg_filter(signal_copy, size=3)
+
+    step = length - intersection_length
+
     batch = []
-    num_batches, remaining = divmod(len(signal), step - intersection_length)
+    _, remaining = divmod(len(signal_copy), step)
 
-    for batch_index in range(num_batches):
-        start_index = batch_index * (step - intersection_length)
-        stop_index = start_index + step
+    for step_index in range(step, len(signal_copy), step):
+        stop_index = step_index + intersection_length
+        start_index = stop_index - length
 
-        signal_cutout = signal[start_index:stop_index]
-        min_ = signal_cutout.min()
-        max_ = signal_cutout.max()
-        scale = max(abs(min_), abs(max_))
-        scaled = signal_cutout / scale
+        signal_cutout = scale(signal_copy[start_index:stop_index])
 
-        batch.append([scaled])
+        batch.append([signal_cutout])
 
         if len(batch) % batch_size == 0:
             try:
@@ -40,7 +43,7 @@ def batcher(
 
     # Get the remaining part of the signal
     if remaining != 0:
-        batch.append([signal[-step:]])
+        batch.append([scale(signal_copy[-length:])])
 
     # Exit on empty batch
     if not batch:
@@ -88,10 +91,10 @@ class SignalProcessor(object):
                 accumulated_step += (self._step - self._intersection)
 
             last_indexes, *__ = np.nonzero(channel_predictions[-1] > self._threshold)
-            last_indexes += len(channel) - 1 - self._step
+            last_indexes += len(channel) - self._step
             prediction_indexes.append(last_indexes)
 
-            channel_prediction = np.hstack(prediction_indexes)
+            channel_prediction = np.sort(np.hstack(prediction_indexes))
             channel_result = self._compressor.compress(channel_prediction, channel)
             result.append(channel_result)
 

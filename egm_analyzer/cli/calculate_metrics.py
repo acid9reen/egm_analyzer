@@ -64,7 +64,7 @@ def read_ground_truth(filepath: Path) -> list[set[int]]:
     with open(filepath, 'r') as input_:
         labels: list[list[int]] = json.load(input_)
 
-    return [set(channel) for channel in labels]
+    return [set(map(lambda x: round(x), channel)) for channel in labels]
 
 
 def read_predictions(filepath: Path) -> list[set[int]]:

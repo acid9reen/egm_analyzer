@@ -18,18 +18,25 @@ dependencies = [
     "pydantic",
     "scipy",
     "tqdm",
+    "egmlib@git+https://github.com/acid9reen/egmlib.git@main",
 ]
 
 [project.optional-dependencies]
 test = [
     "pytest",
 ]
+gui = [
+    "dearpygui"
+]
 dev = [
-    "egm_analyzer[test]",
+    "egm_analyzer[test,gui]",
     "flake8",
     "mypy",
     "pre-commit",
     "types-tqdm",
+]
+torch = [
+    "torch",
 ]
 
 [tool.setuptools.packages.find]
@@ -37,7 +44,10 @@ exclude = ["test"]
 
 [tool.setuptools.package-data]
 egm_analyzer = ["py.typed"]
+"egm_analyzer.assets.fonts" = ["*.ttf"]
 
 [project.scripts]
 analyze_egm = "egm_analyzer.cli.analyze_egm:main"
 calculate_metrics = "egm_analyzer.cli.calculate_metrics:main"
+analyze_errors = "egm_analyzer.gui.error_analyzer:main"
+start_analyze = "egm_analyzer.gui.egm_analyzer:main"

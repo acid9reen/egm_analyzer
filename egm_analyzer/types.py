@@ -12,6 +12,7 @@ Index = float  # 200 microseconds
 class Stage(str, Enum):
     PEAK_SEARCH = 'peak_search'
     PEAK_FIX = 'peak_fix'
+    HUMAN_EDIT = 'human_edit'
 
 
 class Peak(BaseModel):
